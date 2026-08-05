@@ -1,4 +1,5 @@
 import 'package:final_project_coffee_talk/coffeeEntry.dart';
+import 'package:final_project_coffee_talk/home.dart';
 import 'package:final_project_coffee_talk/profile.dart';
 import 'package:flutter/material.dart';
 
@@ -34,14 +35,7 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
 
-  void _incrementCounter() {
-    setState(() {
-
-      _counter++;
-    });
-  }
   int currentPageIndex = 0;
 
   @override
@@ -83,15 +77,16 @@ class _MyHomePageState extends State<MyHomePage> {
         ],
       ),
        body: <Widget>[
-  Card(
-          shadowColor: Colors.transparent,
-          margin: const .all(8.0),
-          child: SizedBox.expand(
-            child: Center(
-              child: Text('Home page', ),
-            ),
-          ),
-        ),
+        const CustomHomePage(),
+  // Card(
+  //         shadowColor: Colors.transparent,
+  //         margin: const .all(8.0),
+  //         child: SizedBox.expand(
+  //           child: Center(
+  //             child: Text('Home page', ),
+  //           ),
+  //         ),
+  //       ),
 
                 /// Notifications page
         const Padding(

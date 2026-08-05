@@ -16,16 +16,17 @@ class MyCustomProfileState extends State<MyCustomProfile> {
   @override
   Widget build(BuildContext context) {
     return Column(
-    children:[ Card(
-          shadowColor: Colors.transparent,
-          margin: const .all(8.0),
-          child: SizedBox.expand(
-            child: Center(
-              child: Text('Home page', ),
-            ),
-          ),
+  children: [
+    Card(
+      margin: const EdgeInsets.all(8.0),
+      child: const Padding(
+        padding: EdgeInsets.all(24.0),
+        child: Center(
+          child: Text('Profile'),
         ),
-    ],
- );
+      ),
+    ),
+  ],
+);
  }
 }

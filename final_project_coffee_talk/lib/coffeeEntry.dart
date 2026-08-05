@@ -51,6 +51,48 @@ print("Length: ${_imagesTaken.length}");
   final String _coffeeOrder = '';
   final double _price = 0.0;
   final String _reviewEntry = '';
+
+  void _submitForm() {
+
+// Check if the form is valid
+if (_formKey.currentState!.validate()) {
+    
+  // Save the form data
+  _formKey.currentState!.save(); 
+  
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+          
+        // Title of the dialog
+        title: Text('Form Submitted'), 
+        
+        content: Text(
+          'Name: $_coffeShopName\nOrder: $_coffeeOrder',
+        ), 
+        
+        // Display the entered name and email
+        actions: <Widget>[
+          TextButton(
+            child: Text(
+              'OK',
+              style: TextStyle(color: Colors.green),
+            ), 
+            
+            // Button to close the dialog
+            onPressed: () {
+                
+              // Close the dialog
+              Navigator.of(context).pop(); 
+            },
+          ),
+        ],
+      );
+    },
+  );
+}
+}
   double rating = 3.5;
   int starCount = 5;
 
