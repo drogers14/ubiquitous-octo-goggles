@@ -1,4 +1,7 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 
 // Create a Form widget.
 class CustomHomePage extends StatefulWidget {
@@ -13,6 +16,31 @@ class CustomHomePage extends StatefulWidget {
 // Create a corresponding State class.
 // This class holds data related to the form.
 class HomePageState extends State<CustomHomePage> {
+//   Future<Widget> _get_data() async {
+//   StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+//   stream: FirebaseFirestore.instance.collection('DriverList').snapshots(),
+//   builder: (_, snapshot) {
+//     if (snapshot.hasError) return Text('Error = ${snapshot.error}');
+
+//     if (snapshot.hasData) {
+//       final docs = snapshot.data!.docs;
+//       return ListView.builder(
+//         itemCount: docs.length,
+//         itemBuilder: (_, i) {
+//           final data = docs[i].data();
+//           return ListTile(
+//             title: Text(data['name']),
+//             subtitle: Text(data['phone']),
+//           );
+//         },
+//       );
+//     }
+
+//     return Center(child: CircularProgressIndicator());
+//   },
+  
+// );
+//   }
   @override
   Widget build(BuildContext context) {
     return Column(
