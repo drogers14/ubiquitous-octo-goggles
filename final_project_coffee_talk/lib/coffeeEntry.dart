@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_rating/flutter_rating.dart';
@@ -6,17 +5,13 @@ import 'package:image_picker/image_picker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:async';
 
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
-import 'dart:typed_data';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:geolocator/geolocator.dart';
 
-import 'package:google_places_flutter/google_places_flutter.dart';
-import 'package:google_places_flutter/model/place_type.dart';
-import 'package:google_places_flutter/model/prediction.dart';
+
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 // Create a Form widget.
@@ -137,7 +132,6 @@ double? _locationLatitude;
 double? _locationLongitude;
   final picker = ImagePicker();
 
-  late Future<XFile> _imageFile;
   final List<XFile> _imagesTaken = [];
   Future<void> _getImage() async {
   final XFile? pickedFile = await picker.pickImage(
