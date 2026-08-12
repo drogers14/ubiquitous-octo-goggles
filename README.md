@@ -10,9 +10,7 @@ I'm building this application to explore the intersection of software, product d
 
 * **Flutter**
 * **Dart**
-* [Add backend/API if applicable]
-* [Add database if applicable]
-* [Add authentication if applicable]
+
 * Git / GitHub
 
 ## What I'm Building
@@ -21,9 +19,9 @@ The application is currently under active development.
 
 Current areas of focus include:
 
+<!--- * [Feature you've implemented]
 * [Feature you've implemented]
-* [Feature you've implemented]
-* [Feature you're currently working on]
+* [Feature you're currently working on] -->
 * Building a clean, responsive mobile experience
 * Designing the application so that new functionality can be added without unnecessary complexity
 
