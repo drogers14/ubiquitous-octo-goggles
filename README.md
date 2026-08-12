@@ -1,63 +1,81 @@
 # ☕ CoffeeTalk
 
-A mobile coffee application built with **Flutter and Dart** as a personal software engineering project focused on exploring mobile development and building technology around one of my favorite things: coffee.
+A Flutter mobile application for discovering and sharing coffee experiences.
 
-## About
+Users can log in with Google, record the coffee drinks they've ordered at different shops, and share their experiences through reviews, ratings, photos, and pricing.
 
-I'm building this application to explore the intersection of software, product design, and coffee. The project is an ongoing opportunity to develop a production-minded mobile application while learning more about the tools and architecture involved in modern cross-platform development.
+## Features
+
+### 🔐 Google Authentication
+
+Users must authenticate with Google before creating coffee entries.
+
+### 📍 Coffee Shop Search
+
+Coffee shops are selected using the **Google Places API**, allowing users to search for and select real-world coffee shops rather than manually entering shop information.
+
+### ☕ Coffee Entries
+
+Users can create an entry for a drink they've ordered, including:
+
+* Coffee shop
+* Drink ordered
+* Price
+* Star rating
+* Written review
+* Photo
+
+### 📰 Home Feed
+
+Coffee entries are rendered as social-style cards and displayed on the homepage, creating a feed where users can browse other coffee experiences.
 
 ## Tech Stack
 
 * **Flutter**
 * **Dart**
-
+* **Google Authentication**
+* **Google Places API**
+* [Add your database/backend here]
 * Git / GitHub
 
-## What I'm Building
+## Architecture & Engineering Focus
 
-The application is currently under active development.
+This project is an opportunity to build a complete mobile application while exploring product development, API integrations, authentication, and user-generated content.
 
-Current areas of focus include:
+Some of the engineering challenges include:
 
-<!--- * [Feature you've implemented]
-* [Feature you've implemented]
-* [Feature you're currently working on] -->
-* Building a clean, responsive mobile experience
-* Designing the application so that new functionality can be added without unnecessary complexity
+* Integrating third-party APIs into a mobile application
+* Implementing authenticated user flows
+* Modeling coffee shop and drink information
+* Handling user-generated reviews and ratings
+* Supporting image uploads
+* Rendering dynamic content in a feed
+* Designing reusable Flutter components
+* Handling validation and error states
 
-## Engineering Approach
+## Why I Built It
 
-I'm using this project to practice software engineering beyond simply getting features working.
+Coffee is one of my favorite interests outside of software engineering, so I wanted to build a product around it rather than another generic demo application.
 
-Areas I'm focusing on include:
-
-* Reusable and maintainable code
-* Clear separation of application responsibilities
-* Input validation and error handling
-* Testing and correctness
-* Iterative development
-* Using modern developer tooling, including AI-assisted development, while reviewing and validating generated code
-
-## Why Coffee?
-
-Coffee is a personal interest of mine, which made it a natural domain for a software project. I'm particularly interested in how technology can improve the coffee experience for people who source, roast, brew, and enjoy coffee.
-
-This project is also an opportunity to keep learning about the technology behind products that connect software with the physical world.
+The project gives me a way to combine my interest in coffee with software engineering while learning more about mobile development and building an application around real-world user interactions.
 
 ## Roadmap
 
-* [ ] [Images hosted]
-* [ ] [Most Popular Shops Nearby]
-* [ ] Add automated tests
-* [ ] Improve application performance
-* [ ] Continue refining the user experience
-* [ ] Explore additional coffee-related functionality
+Some areas I'm considering as the application evolves:
+
+* [ ] Improve feed personalization
+* [ ] Add coffee shop profiles
+* [ ] Add search and filtering
+* [ ] Improve image handling
+* [ ] Add additional automated testing
+* [ ] Continue improving the mobile UI/UX
+* [ ] Explore additional social features
 
 ## Status
 
-🚧 **In active development**
+🚧 **Actively in development**
 
-This project is intentionally evolving as I learn, experiment, and add functionality.
+This project is continuously evolving as I add features and experiment with new ideas.
 
 ## Author
 
@@ -66,3 +84,4 @@ This project is intentionally evolving as I learn, experiment, and add functiona
 Software Engineer | Automation & Testing | Full-Stack Development
 
 [GitHub](https://github.com/drogers14) · [LinkedIn](https://linkedin.com/in/destiny-rogers)
+
