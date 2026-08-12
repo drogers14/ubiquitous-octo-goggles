@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:final_project_coffee_talk/main.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -18,25 +20,74 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   GoogleSignInAccount? _googleUser;
+
    Future<UserCredential> signInWithGoogle() async {
-    if(kIsWeb){
-      GoogleAuthProvider googleProvider = GoogleAuthProvider();
-      googleProvider.addScope(
-        'https://www.googleapis.com/auth/contacts.readonly',
-      );
-      googleProvider.setCustomParameters({'login_hint': 'user@example.com'});
-      return await FirebaseAuth.instance.signInWithPopup(googleProvider);
-    }
-    final GoogleSignInAccount? _googleUser = await GoogleSignIn.instance
-    .authenticate();
+  if (kIsWeb) {
+    final GoogleAuthProvider googleProvider = GoogleAuthProvider();
 
-    final GoogleSignInAuthentication googleAuth = _googleUser!.authentication;
+    googleProvider.addScope(
+      'https://www.googleapis.com/auth/contacts.readonly',
+    );
 
-    final credential = GoogleAuthProvider.credential(idToken: googleAuth.idToken);
+    final UserCredential userCredential =
+    await FirebaseAuth.instance.signInWithPopup(googleProvider);
 
-    return await FirebaseAuth.instance.signInWithCredential(credential);
-   
+final User? user = userCredential.user;
+
+if (user != null) {
+  await FirebaseFirestore.instance
+      .collection('userProfile')
+      .doc(user.uid)
+      .set({
+    'name': user.displayName ?? '',
+    'email': user.email ?? '',
+    'imageUrl': user.photoURL ?? '',
+  }, SetOptions(merge: true));
+}
+
+    if (!mounted) return userCredential;
+
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const MyApp(),
+      ),
+      (Route<dynamic> route) => false,
+    );
+
+    return userCredential;
+  } else {
+    final GoogleSignIn signIn = GoogleSignIn.instance;
+
+    await signIn.initialize();
+
+    _googleUser = await signIn.authenticate();
+
+    final GoogleSignInAuthentication googleAuth =
+        _googleUser!.authentication;
+
+    final credential = GoogleAuthProvider.credential(
+      idToken: googleAuth.idToken,
+    );
+
+    final UserCredential userCredential =
+        await FirebaseAuth.instance.signInWithCredential(credential);
+
+    if (!mounted) return userCredential;
+
+    setState(() {});
+
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const MyApp(),
+      ),
+      (Route<dynamic> route) => false,
+    );
+
+    return userCredential;
   }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -69,6 +120,19 @@ class _LoginPageState extends State<LoginPage> {
         ListTile(leading: GoogleUserCircleAvatar(identity: _googleUser!),
         title: Text(_googleUser!.displayName ?? ""),
         subtitle: Text(_googleUser!.email),
+        ),
+      );
+      widgets.add(Text(FirebaseAuth.instance.currentUser?.uid ?? ""));
+      widgets.add(
+        ElevatedButton(onPressed: () async {
+          await FirebaseAuth.instance.signOut();
+          await GoogleSignIn.instance.signOut();
+          _googleUser = null;
+
+          setState((){
+          });
+        }, 
+        child: const Text("Sign Out"),
         ),
       );
     }

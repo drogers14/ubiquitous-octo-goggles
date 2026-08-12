@@ -3,7 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_rating/flutter_rating.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:async';
 
+import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
+import 'dart:typed_data';
+
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:geolocator/geolocator.dart';
 // Create a Form widget.
 class MyCustomForm extends StatefulWidget {
   const MyCustomForm({super.key});
@@ -19,29 +27,80 @@ class MyCustomForm extends StatefulWidget {
 class MyCustomFormState extends State<MyCustomForm> {
   final picker = ImagePicker();
 
-  late Future<File> _imageFile;
-  final List<File> _imagesTaken = [];
-  void _getImage() async {
-    final XFile? pickedFile = await picker.pickImage(
-      source: ImageSource.camera,
-    );
-    if (pickedFile != null) {
-      setState(() {
-        _imageFile = Future.value(File(pickedFile.path));
-        _imagesTaken.add(File(pickedFile.path));
-      });
-      print("Length: ${_imagesTaken.length}");
+  late Future<XFile> _imageFile;
+  final List<XFile> _imagesTaken = [];
+  Future<void> _getImage() async {
+  final XFile? pickedFile = await picker.pickImage(
+    source: ImageSource.camera,
+  );
 
-      for (final image in _imagesTaken) {
-        print(image.path);
-      }
-      return;
-    }
+  if (pickedFile != null) {
     setState(() {
-      _imageFile = Future.error("uh oh");
+      _imagesTaken.add(pickedFile);
     });
+
+    print("Length: ${_imagesTaken.length}");
+
+    for (final image in _imagesTaken) {
+      print(image.name);
+    }
+  }
+}
+
+Future<List<String>> _uploadImages(String entryId) async {
+  final List<String> imageUrls = [];
+
+  for (int i = 0; i < _imagesTaken.length; i++) {
+    final XFile image = _imagesTaken[i];
+
+    final Uint8List bytes = await image.readAsBytes();
+
+    final Reference storageRef = FirebaseStorage.instance
+        .ref()
+        .child('journal-images')
+        .child(entryId)
+        .child('${i}_${image.name}');
+
+    final metadata = SettableMetadata(
+      contentType: 'image/jpeg',
+    );
+
+    await storageRef.putData(
+      bytes,
+      metadata,
+    );
+
+    final String downloadUrl =
+        await storageRef.getDownloadURL();
+
+    imageUrls.add(downloadUrl);
   }
 
+  return imageUrls;
+}
+
+Future<Position?> _getLocation() async {
+  bool serviceEnabled =
+      await Geolocator.isLocationServiceEnabled();
+
+  if (!serviceEnabled) {
+    return null;
+  }
+
+  LocationPermission permission =
+      await Geolocator.checkPermission();
+
+  if (permission == LocationPermission.denied) {
+    permission = await Geolocator.requestPermission();
+  }
+
+  if (permission == LocationPermission.denied ||
+      permission == LocationPermission.deniedForever) {
+    return null;
+  }
+
+  return await Geolocator.getCurrentPosition();
+}
   // Create a global key that uniquely identifies the Form widget
   // and allows validation of the form.
   //
@@ -54,25 +113,100 @@ class MyCustomFormState extends State<MyCustomForm> {
   String _reviewEntry = '';
 
   Future<void> _submitForm() async {
-    // Check if the form is valid
-    if (_formKey.currentState!.validate()) {
-      // Save the form data
-      _formKey.currentState!.save();
-
-      // If the form is valid, display a snackbar. In the real world,
-      // you'd often call a server or save the information in a database.
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Processing Data')));
-      await FirebaseFirestore.instance.collection('journal-entry').add({
-        'coffee-shop-name': _coffeeShopName,
-        'order-item': _coffeeOrder,
-        'price': _price,
-        'review': _reviewEntry,
-        'rating': rating,
-      });
-    }
+  if (!_formKey.currentState!.validate()) {
+    return;
   }
+
+  _formKey.currentState!.save();
+
+  final User? user = FirebaseAuth.instance.currentUser;
+
+  if (user == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('You must be logged in to post.'),
+      ),
+    );
+    return;
+  }
+
+  try {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Saving your coffee journal...'),
+      ),
+    );
+
+    // Create the Firestore document first.
+    final DocumentReference<Map<String, dynamic>> entryRef =
+        FirebaseFirestore.instance
+            .collection('journal-entry')
+            .doc();
+
+    // Get location.
+    Position? position;
+
+    try {
+      position = await _getLocation();
+      debugPrint(
+        'Location: ${position?.latitude}, ${position?.longitude}',
+      );
+    } catch (e) {
+      debugPrint('Location failed: $e');
+    }
+
+    // Save the journal entry immediately.
+    await entryRef.set({
+      'userId': user.uid,
+      'coffee-shop-name': _coffeeShopName,
+      'order-item': _coffeeOrder,
+      'price': _price,
+      'review': _reviewEntry,
+      'rating': rating,
+      'imageUrls': [],
+      'latitude': position?.latitude,
+      'longitude': position?.longitude,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+
+    debugPrint('Firestore entry created: ${entryRef.id}');
+
+    // Upload images AFTER the Firestore entry exists.
+    if (_imagesTaken.isNotEmpty) {
+      try {
+        final List<String> imageUrls =
+            await _uploadImages(entryRef.id);
+
+        await entryRef.update({
+          'imageUrls': imageUrls,
+        });
+
+        debugPrint('Images uploaded: $imageUrls');
+      } catch (e) {
+        debugPrint('Image upload failed: $e');
+      }
+    }
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Coffee journal posted! ☕'),
+      ),
+    );
+  } catch (e, stackTrace) {
+    debugPrint('JOURNAL SAVE ERROR: $e');
+    debugPrint('$stackTrace');
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Something went wrong: $e'),
+      ),
+    );
+  }
+}
 
   double rating = 3.5;
   int starCount = 5;
@@ -125,12 +259,16 @@ class MyCustomFormState extends State<MyCustomForm> {
             },
           ),
           TextFormField(
-            decoration: InputDecoration(labelText: 'Price'),
-            onSaved: (value) {
-              // Save the entered email
-              _price = value! as double;
-            },
-          ),
+  decoration: const InputDecoration(
+    labelText: 'Price',
+  ),
+  keyboardType: const TextInputType.numberWithOptions(
+    decimal: true,
+  ),
+  onSaved: (value) {
+    _price = double.tryParse(value ?? '') ?? 0.0;
+  },
+),
           FloatingActionButton(
             onPressed: _getImage,
             heroTag: null,

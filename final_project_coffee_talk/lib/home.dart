@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_rating/flutter_rating.dart';
+import 'package:geolocator/geolocator.dart';
 
 // Create a Form widget.
 class CustomHomePage extends StatefulWidget {
@@ -15,7 +17,46 @@ class CustomHomePage extends StatefulWidget {
 // Create a corresponding State class.
 // This class holds data related to the form.
 class HomePageState extends State<CustomHomePage> {
-  Widget _getData() {
+  Position? _currentPosition;
+  Future<void> _getCurrentLocation() async {
+  bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+
+  if (!serviceEnabled) {
+    return;
+  }
+
+  LocationPermission permission =
+      await Geolocator.checkPermission();
+
+  if (permission == LocationPermission.denied) {
+    permission = await Geolocator.requestPermission();
+  }
+
+  if (permission == LocationPermission.denied ||
+      permission == LocationPermission.deniedForever) {
+    return;
+  }
+
+  final position = await Geolocator.getCurrentPosition();
+
+  if (mounted) {
+    setState(() {
+      _currentPosition = position;
+    });
+  }
+}
+  Future<DocumentSnapshot<Map<String, dynamic>>> getUserProfile() {
+  final user = FirebaseAuth.instance.currentUser!;
+
+  return FirebaseFirestore.instance
+      .collection('userProfile')
+      .doc(user.uid)
+      .get();
+}
+  Widget _getData(Map<String, dynamic> profile) {
+    final name = profile['name'] ?? 'Unknown User';
+  final imageUrl = profile['imageUrl'] ?? '';
+  final username = profile['username'] ?? '';
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
       stream: FirebaseFirestore.instance
           .collection('journal-entry')
@@ -28,17 +69,40 @@ class HomePageState extends State<CustomHomePage> {
           return ListView.builder(
             itemCount: docs.length,
             itemBuilder: (_, i) {
-              final data = docs[i].data();
+  final data = docs[i].data();
+
+  double? distanceMiles;
+
+  if (_currentPosition != null &&
+      data['latitude'] != null &&
+      data['longitude'] != null) {
+    final double postLatitude =
+        (data['latitude'] as num).toDouble();
+
+    final double postLongitude =
+        (data['longitude'] as num).toDouble();
+
+    final double distanceMeters = Geolocator.distanceBetween(
+      _currentPosition!.latitude,
+      _currentPosition!.longitude,
+      postLatitude,
+      postLongitude,
+    );
+
+    distanceMiles = distanceMeters / 1609.344;
+  }
               return Padding(
                 padding: const EdgeInsets.all(16),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const CircleAvatar(
+                    CircleAvatar(
                       radius: 24,
-                      backgroundImage: NetworkImage(
-                        'https://webstockreview.net/images/male-clipart-professional-man-3.jpg',
-                      ),
+                      backgroundImage:  imageUrl.isNotEmpty ?  NetworkImage(imageUrl)
+                      : null,
+                      child: imageUrl.isEmpty
+                      ? const Icon(Icons.person)
+                      : null,
                     ),
 
                     const SizedBox(width: 12),
@@ -48,21 +112,23 @@ class HomePageState extends State<CustomHomePage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(
-                            children: const [
+                            children: [
                               Text(
-                                'John Doe',
-                                style: TextStyle(fontWeight: FontWeight.bold),
+                                name,
+                                style: const TextStyle(fontWeight: FontWeight.bold),
                               ),
-                              SizedBox(width: 6),
+                              const SizedBox(width: 6),
                               Text(
-                                '@JohnDoe',
-                                style: TextStyle(color: Colors.grey),
+                                '@$username',
+                                style: const TextStyle(color: Colors.grey),
                               ),
-                              SizedBox(width: 6),
-                              Text(
-                                '· 2h',
-                                style: TextStyle(color: Colors.grey),
-                              ),
+                              if (distanceMiles != null) ...[
+  const SizedBox(width: 6),
+  Text(
+    '· ${distanceMiles.toStringAsFixed(1)} mi away',
+    style: const TextStyle(color: Colors.grey),
+  ),
+],
                             ],
                           ),
                           Row(
@@ -118,11 +184,6 @@ class HomePageState extends State<CustomHomePage> {
                   ],
                 ),
               );
-              // return ListTile(
-              //   title: Text(data['coffee-shop-name']),
-              //   subtitle: Text(data['order-item']),
-
-              // );
             },
           );
         }
@@ -131,87 +192,38 @@ class HomePageState extends State<CustomHomePage> {
       },
     );
   }
+@override
+void initState() {
+  super.initState();
+  _getCurrentLocation();
+}
+@override
+Widget build(BuildContext context) {
+  return FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+    future: getUserProfile(),
+    builder: (context, snapshot) {
+      if (snapshot.connectionState == ConnectionState.waiting) {
+        return const Center(
+          child: CircularProgressIndicator(),
+        );
+      }
 
-  @override
-  Widget build(BuildContext context) {
-    // return Column(
-    //   crossAxisAlignment: CrossAxisAlignment.start,
+      if (snapshot.hasError) {
+        return Center(
+          child: Text('Error: ${snapshot.error}'),
+        );
+      }
 
-    //   children: [
-    // _getData(),
-    // Padding(
-    //   padding: const EdgeInsets.all(16),
-    //   child: Row(
-    //     crossAxisAlignment: CrossAxisAlignment.start,
-    //     children: [
-    //       const CircleAvatar(
-    //         radius: 24,
-    //         backgroundImage: NetworkImage(
-    //           'https://webstockreview.net/images/male-clipart-professional-man-3.jpg',
-    //         ),
-    //       ),
+      if (!snapshot.hasData || !snapshot.data!.exists) {
+        return const Center(
+          child: Text('User profile not found'),
+        );
+      }
 
-    //       const SizedBox(width: 12),
+      final profile = snapshot.data!.data()!;
 
-    //       Expanded(
-    //         child: Column(
-    //           crossAxisAlignment: CrossAxisAlignment.start,
-    //           children: [
-    //             Row(
-    //               children: const [
-    //                 Text(
-    //                   'John Doe',
-    //                   style: TextStyle(fontWeight: FontWeight.bold),
-    //                 ),
-    //                 SizedBox(width: 6),
-    //                 Text('@JohnDoe', style: TextStyle(color: Colors.grey)),
-    //                 SizedBox(width: 6),
-    //                 Text('· 2h', style: TextStyle(color: Colors.grey)),
-    //               ],
-    //             ),
-    //             Row(
-    //               children: const [
-    //                 Text(
-    //                   'Coffee Shop Name',
-    //                   style: TextStyle(fontWeight: FontWeight.bold),
-    //                 ),
-    //                 SizedBox(width: 6),
-    //                 Text(
-    //                   'Drink/Item',
-    //                   style: TextStyle(color: Colors.blue),
-    //                 ),
-    //                 SizedBox(width: 6),
-    //                 Text('· Price', style: TextStyle(color: Colors.grey)),
-    //               ],
-    //             ),
-    //             const SizedBox(height: 8),
-
-    //             const Text(
-    //               'Fair Coffee Review! '
-    //               'Really enjoying learning widgets and layouts. ',
-    //               style: TextStyle(fontSize: 16),
-    //             ),
-
-    //             const SizedBox(height: 12),
-
-    //             Row(
-    //               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-    //               children: const [
-    //                 Icon(Icons.chat_bubble_outline, color: Colors.grey),
-    //                 // Icon(Icons.repeat, color: Colors.grey),
-    //                 Icon(Icons.favorite_border, color: Colors.grey),
-    //                 // Icon(Icons.bar_chart, color: Colors.grey),
-    //                 Icon(Icons.share_outlined, color: Colors.grey),
-    //               ],
-    //             ),
-    //           ],
-    //         ),
-    //       ),
-    //     ],
-    //   ),
-    // ),
-    // ],
-    return _getData();
-    // );
-  }
+      return _getData(profile);
+    },
+  );
+}
 }

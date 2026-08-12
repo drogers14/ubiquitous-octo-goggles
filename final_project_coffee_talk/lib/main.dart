@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:final_project_coffee_talk/coffeeEntry.dart';
 import 'package:final_project_coffee_talk/home.dart';
+import 'package:final_project_coffee_talk/login.dart';
 import 'package:final_project_coffee_talk/profile.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -13,7 +14,8 @@ void main() async {
     persistenceEnabled: true,
   );
 
-  runApp(const MyApp());
+  // runApp(const MyApp());
+  runApp(const MaterialApp(title: "Login Page", home: LoginPage()));
 }
 
 class MyApp extends StatelessWidget {
@@ -26,7 +28,7 @@ class MyApp extends StatelessWidget {
       title: 'Flutter Demo',
       theme: ThemeData(
   
-        colorScheme: .fromSeed(seedColor: Colors.amber),
+        colorScheme: .fromSeed(seedColor: Colors.green),
       ),
       home: const MyHomePage(title: 'Coffee Talk'),
     );
@@ -87,15 +89,6 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
        body: <Widget>[
         const CustomHomePage(),
-  // Card(
-  //         shadowColor: Colors.transparent,
-  //         margin: const .all(8.0),
-  //         child: SizedBox.expand(
-  //           child: Center(
-  //             child: Text('Home page', ),
-  //           ),
-  //         ),
-  //       ),
 
                 /// Notifications page
         const Padding(
