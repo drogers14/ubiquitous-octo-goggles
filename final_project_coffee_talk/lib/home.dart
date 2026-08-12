@@ -39,11 +39,16 @@ class HomePageState extends State<CustomHomePage> {
 
   final position = await Geolocator.getCurrentPosition();
 
-  if (mounted) {
-    setState(() {
-      _currentPosition = position;
-    });
-  }
+debugPrint(
+  '📍 USER LOCATION: '
+  '${position.latitude}, ${position.longitude}',
+);
+
+if (mounted) {
+  setState(() {
+    _currentPosition = position;
+  });
+}
 }
   Future<DocumentSnapshot<Map<String, dynamic>>> getUserProfile() {
   final user = FirebaseAuth.instance.currentUser!;
@@ -125,7 +130,7 @@ class HomePageState extends State<CustomHomePage> {
                               if (distanceMiles != null) ...[
   const SizedBox(width: 6),
   Text(
-    '· ${distanceMiles.toStringAsFixed(1)} mi away',
+    '· ${distanceMiles.toStringAsFixed(2)} mi away',
     style: const TextStyle(color: Colors.grey),
   ),
 ],

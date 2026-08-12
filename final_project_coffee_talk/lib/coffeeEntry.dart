@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_rating/flutter_rating.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -12,6 +13,12 @@ import 'dart:typed_data';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:geolocator/geolocator.dart';
+
+import 'package:google_places_flutter/google_places_flutter.dart';
+import 'package:google_places_flutter/model/place_type.dart';
+import 'package:google_places_flutter/model/prediction.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 // Create a Form widget.
 class MyCustomForm extends StatefulWidget {
   const MyCustomForm({super.key});
@@ -25,6 +32,109 @@ class MyCustomForm extends StatefulWidget {
 // Create a corresponding State class.
 // This class holds data related to the form.
 class MyCustomFormState extends State<MyCustomForm> {
+  Future<List<Map<String, dynamic>>> _searchPlaces(String query) async {
+  if (query.trim().isEmpty) {
+    return [];
+  }
+
+  final response = await http.post(
+    Uri.parse(
+      'https://places.googleapis.com/v1/places:autocomplete',
+    ),
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Goog-Api-Key': dotenv.get('API_KEY'),
+      'X-Goog-FieldMask':
+          'suggestions.placePrediction.place,'
+          'suggestions.placePrediction.placeId,'
+          'suggestions.placePrediction.text',
+    },
+    body: jsonEncode({
+      'input': query,
+      'includedRegionCodes': ['us'],
+      'includedPrimaryTypes': ['cafe'],
+    }),
+  );
+
+  if (response.statusCode != 200) {
+    debugPrint(
+      'Places API error ${response.statusCode}: ${response.body}',
+    );
+    return [];
+  }
+
+  final data = jsonDecode(response.body);
+
+  final suggestions =
+      data['suggestions'] as List<dynamic>? ?? [];
+
+  return suggestions
+      .where((suggestion) =>
+          suggestion['placePrediction'] != null)
+      .map((suggestion) {
+    final prediction = suggestion['placePrediction'];
+
+    return {
+      'placeId': prediction['placeId'],
+      'description':
+          prediction['text']['text'],
+    };
+  }).toList();
+}
+Future<void> _selectPlace(
+  String placeId,
+  String description,
+) async {
+  final response = await http.get(
+    Uri.parse(
+      'https://places.googleapis.com/v1/places/$placeId',
+    ),
+    headers: {
+      'X-Goog-Api-Key': dotenv.get('API_KEY'),
+      'X-Goog-FieldMask':
+          'id,displayName,formattedAddress,location',
+    },
+  );
+
+  if (response.statusCode != 200) {
+    debugPrint(
+      'Place details error ${response.statusCode}: ${response.body}',
+    );
+    return;
+  }
+
+  final data = jsonDecode(response.body);
+
+  final location = data['location'];
+
+  final String placeName =
+      data['displayName']?['text'] ?? description;
+
+  final double latitude =
+      (location['latitude'] as num).toDouble();
+
+  final double longitude =
+      (location['longitude'] as num).toDouble();
+
+  // DEBUG
+  debugPrint('☕ SELECTED COFFEE SHOP: $placeName');
+  debugPrint('☕ COFFEE SHOP LAT: $latitude');
+  debugPrint('☕ COFFEE SHOP LNG: $longitude');
+
+  setState(() {
+    _coffeeShopName = placeName;
+
+    _locationController.text = description;
+
+    _locationLatitude = latitude;
+    _locationLongitude = longitude;
+  });
+}
+  final TextEditingController _locationController =
+    TextEditingController();
+
+double? _locationLatitude;
+double? _locationLongitude;
   final picker = ImagePicker();
 
   late Future<XFile> _imageFile;
@@ -144,16 +254,16 @@ Future<Position?> _getLocation() async {
             .doc();
 
     // Get location.
-    Position? position;
+ Position? position;
 
-    try {
-      position = await _getLocation();
-      debugPrint(
-        'Location: ${position?.latitude}, ${position?.longitude}',
-      );
-    } catch (e) {
-      debugPrint('Location failed: $e');
-    }
+try {
+  position = await _getLocation();
+  debugPrint(
+    'Location: ${position?.latitude}, ${position?.longitude}',
+  );
+} catch (e) {
+  debugPrint('Location failed: $e');
+}
 
     // Save the journal entry immediately.
     await entryRef.set({
@@ -164,8 +274,9 @@ Future<Position?> _getLocation() async {
       'review': _reviewEntry,
       'rating': rating,
       'imageUrls': [],
-      'latitude': position?.latitude,
-      'longitude': position?.longitude,
+      'location': _locationController.text,
+'latitude': _locationLatitude,
+'longitude': _locationLongitude,
       'createdAt': FieldValue.serverTimestamp(),
     });
 
@@ -207,7 +318,80 @@ Future<Position?> _getLocation() async {
     );
   }
 }
+Widget _buildLocationField() {
+  return Autocomplete<Map<String, dynamic>>(
+    optionsBuilder: (TextEditingValue textEditingValue) async {
+      if (textEditingValue.text.trim().isEmpty) {
+        return const Iterable<Map<String, dynamic>>.empty();
+      }
 
+      return await _searchPlaces(textEditingValue.text);
+    },
+
+    displayStringForOption: (option) =>
+        option['description'] as String,
+
+    onSelected: (option) {
+      _selectPlace(
+        option['placeId'] as String,
+        option['description'] as String,
+      );
+    },
+
+    fieldViewBuilder: (
+      context,
+      textEditingController,
+      focusNode,
+      onFieldSubmitted,
+    ) {
+      return TextFormField(
+        controller: textEditingController,
+        focusNode: focusNode,
+        decoration: const InputDecoration(
+          labelText: 'Coffee Shop Location',
+          hintText: 'Search for a coffee shop',
+          prefixIcon: Icon(Icons.location_on),
+          border: OutlineInputBorder(),
+        ),
+
+        onChanged: (value) {
+          _locationController.text = value;
+        },
+      );
+    },
+
+    optionsViewBuilder: (
+      context,
+      onSelected,
+      options,
+    ) {
+      return Align(
+        alignment: Alignment.topLeft,
+        child: Material(
+          elevation: 4,
+          child: ListView.builder(
+            padding: EdgeInsets.zero,
+            shrinkWrap: true,
+            itemCount: options.length,
+            itemBuilder: (context, index) {
+              final option = options.elementAt(index);
+
+              return ListTile(
+                leading: const Icon(Icons.location_on),
+                title: Text(
+                  option['description'] as String,
+                ),
+                onTap: () {
+                  onSelected(option);
+                },
+              );
+            },
+          ),
+        ),
+      );
+    },
+  );
+}
   double rating = 3.5;
   int starCount = 5;
 
@@ -220,33 +404,10 @@ Future<Position?> _getLocation() async {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           /* COFFEE SHOP */
-          TextFormField(
-            decoration: InputDecoration(
-              icon: Icon(Icons.local_cafe),
-              // Label for the name field
-              labelText: 'Shop Name',
+          _buildLocationField(),
 
-              // Border style for the text field
-              border: OutlineInputBorder(),
-              focusedBorder: OutlineInputBorder(
-                borderSide: BorderSide(
-                  color: Colors.green,
-                  width: 2.0,
-                ), // Border color when focused
-              ),
-            ),
-            // The validator receives the text that the user has entered.
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Please enter some text';
-              }
-              return null;
-            },
-            onSaved: (value) {
-              // Save the entered email
-              _coffeeShopName = value!;
-            },
-          ),
+      const SizedBox(height: 16),
+        
           /* DRINK ORDER */
           TextFormField(
             decoration: InputDecoration(

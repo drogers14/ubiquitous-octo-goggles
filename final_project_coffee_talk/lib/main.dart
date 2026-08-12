@@ -5,6 +5,7 @@ import 'package:final_project_coffee_talk/login.dart';
 import 'package:final_project_coffee_talk/profile.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'firebase_options.dart';
 
 void main() async {
@@ -15,6 +16,8 @@ void main() async {
   );
 
   // runApp(const MyApp());
+  await dotenv.load();
+
   runApp(const MaterialApp(title: "Login Page", home: LoginPage()));
 }
 
