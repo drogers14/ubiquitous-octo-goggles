@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:final_project_coffee_talk/main.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_rating/flutter_rating.dart';
@@ -19,49 +20,50 @@ class CustomHomePage extends StatefulWidget {
 class HomePageState extends State<CustomHomePage> {
   Position? _currentPosition;
   Future<void> _getCurrentLocation() async {
-  bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
 
-  if (!serviceEnabled) {
-    return;
+    if (!serviceEnabled) {
+      return;
+    }
+
+    LocationPermission permission = await Geolocator.checkPermission();
+
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+    }
+
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever) {
+      return;
+    }
+
+    final position = await Geolocator.getCurrentPosition();
+
+    debugPrint(
+      '📍 USER LOCATION: '
+      '${position.latitude}, ${position.longitude}',
+    );
+
+    if (mounted) {
+      setState(() {
+        _currentPosition = position;
+      });
+    }
   }
 
-  LocationPermission permission =
-      await Geolocator.checkPermission();
-
-  if (permission == LocationPermission.denied) {
-    permission = await Geolocator.requestPermission();
-  }
-
-  if (permission == LocationPermission.denied ||
-      permission == LocationPermission.deniedForever) {
-    return;
-  }
-
-  final position = await Geolocator.getCurrentPosition();
-
-debugPrint(
-  '📍 USER LOCATION: '
-  '${position.latitude}, ${position.longitude}',
-);
-
-if (mounted) {
-  setState(() {
-    _currentPosition = position;
-  });
-}
-}
   Future<DocumentSnapshot<Map<String, dynamic>>> getUserProfile() {
-  final user = FirebaseAuth.instance.currentUser!;
+    final user = FirebaseAuth.instance.currentUser!;
 
-  return FirebaseFirestore.instance
-      .collection('userProfile')
-      .doc(user.uid)
-      .get();
-}
+    return FirebaseFirestore.instance
+        .collection('userProfile')
+        .doc(user.uid)
+        .get();
+  }
+
   Widget _getData(Map<String, dynamic> profile) {
     final name = profile['name'] ?? 'Unknown User';
-  final imageUrl = profile['imageUrl'] ?? '';
-  final username = profile['username'] ?? '';
+    final imageUrl = profile['imageUrl'] ?? '';
+    final username = profile['username'] ?? '';
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
       stream: FirebaseFirestore.instance
           .collection('journal-entry')
@@ -74,28 +76,28 @@ if (mounted) {
           return ListView.builder(
             itemCount: docs.length,
             itemBuilder: (_, i) {
-  final data = docs[i].data();
+              final data = docs[i].data();
 
-  double? distanceMiles;
+              double? distanceMiles;
 
-  if (_currentPosition != null &&
-      data['latitude'] != null &&
-      data['longitude'] != null) {
-    final double postLatitude =
-        (data['latitude'] as num).toDouble();
+              if (_currentPosition != null &&
+                  data['latitude'] != null &&
+                  data['longitude'] != null) {
+                final double postLatitude = (data['latitude'] as num)
+                    .toDouble();
 
-    final double postLongitude =
-        (data['longitude'] as num).toDouble();
+                final double postLongitude = (data['longitude'] as num)
+                    .toDouble();
 
-    final double distanceMeters = Geolocator.distanceBetween(
-      _currentPosition!.latitude,
-      _currentPosition!.longitude,
-      postLatitude,
-      postLongitude,
-    );
+                final double distanceMeters = Geolocator.distanceBetween(
+                  _currentPosition!.latitude,
+                  _currentPosition!.longitude,
+                  postLatitude,
+                  postLongitude,
+                );
 
-    distanceMiles = distanceMeters / 1609.344;
-  }
+                distanceMiles = distanceMeters / 1609.344;
+              }
               return Padding(
                 padding: const EdgeInsets.all(16),
                 child: Row(
@@ -103,11 +105,10 @@ if (mounted) {
                   children: [
                     CircleAvatar(
                       radius: 24,
-                      backgroundImage:  imageUrl.isNotEmpty ?  NetworkImage(imageUrl)
-                      : null,
-                      child: imageUrl.isEmpty
-                      ? const Icon(Icons.person)
-                      : null,
+                      backgroundImage: imageUrl.isNotEmpty
+                          ? NetworkImage(imageUrl)
+                          : null,
+                      child: imageUrl.isEmpty ? const Icon(Icons.person) : null,
                     ),
 
                     const SizedBox(width: 12),
@@ -120,7 +121,9 @@ if (mounted) {
                             children: [
                               Text(
                                 name,
-                                style: const TextStyle(fontWeight: FontWeight.bold),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                               const SizedBox(width: 6),
                               Text(
@@ -128,12 +131,12 @@ if (mounted) {
                                 style: const TextStyle(color: Colors.grey),
                               ),
                               if (distanceMiles != null) ...[
-  const SizedBox(width: 6),
-  Text(
-    '· ${distanceMiles.toStringAsFixed(2)} mi away',
-    style: const TextStyle(color: Colors.grey),
-  ),
-],
+                                const SizedBox(width: 6),
+                                Text(
+                                  '· ${distanceMiles.toStringAsFixed(2)} mi away',
+                                  style: const TextStyle(color: Colors.grey),
+                                ),
+                              ],
                             ],
                           ),
                           Row(
@@ -158,12 +161,12 @@ if (mounted) {
                           ),
                           const SizedBox(height: 8),
                           StarRating(
-                            rating: data['rating'] ?? 0,
+                            rating: (data['rating'] as num?)?.toDouble() ?? 0.0,
                             filledIcon: Icons.coffee,
                             halfFilledIcon: Icons.coffee_outlined,
                             emptyIcon: Icons.coffee_outlined,
-                            color: Colors
-                                .red, // Color for filled and half-filled icons
+                            color: AppColors
+                                .limeCream, // Color for filled and half-filled icons
                             borderColor: Colors.grey, // Color for empty icons
                           ),
                           Text(data['review'], style: TextStyle(fontSize: 16)),
@@ -179,7 +182,7 @@ if (mounted) {
                               ),
                               // Icon(Icons.repeat, color: Colors.grey),
                               Icon(Icons.favorite_border, color: Colors.grey),
-                              // Icon(Icons.bar_chart, color: Colors.grey),
+                              // Icon(Icons.emoji_nature, color: Colors.grey),
                               Icon(Icons.share_outlined, color: Colors.grey),
                             ],
                           ),
@@ -197,38 +200,34 @@ if (mounted) {
       },
     );
   }
-@override
-void initState() {
-  super.initState();
-  _getCurrentLocation();
-}
-@override
-Widget build(BuildContext context) {
-  return FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-    future: getUserProfile(),
-    builder: (context, snapshot) {
-      if (snapshot.connectionState == ConnectionState.waiting) {
-        return const Center(
-          child: CircularProgressIndicator(),
-        );
-      }
 
-      if (snapshot.hasError) {
-        return Center(
-          child: Text('Error: ${snapshot.error}'),
-        );
-      }
+  @override
+  void initState() {
+    super.initState();
+    _getCurrentLocation();
+  }
 
-      if (!snapshot.hasData || !snapshot.data!.exists) {
-        return const Center(
-          child: Text('User profile not found'),
-        );
-      }
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+      future: getUserProfile(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-      final profile = snapshot.data!.data()!;
+        if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        }
 
-      return _getData(profile);
-    },
-  );
-}
+        if (!snapshot.hasData || !snapshot.data!.exists) {
+          return const Center(child: Text('User profile not found'));
+        }
+
+        final profile = snapshot.data!.data()!;
+
+        return _getData(profile);
+      },
+    );
+  }
 }

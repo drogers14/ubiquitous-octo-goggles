@@ -31,7 +31,7 @@ class MyCustomFormState extends State<MyCustomForm> {
   if (query.trim().isEmpty) {
     return [];
   }
-
+  /* AI helped me write this Google Places function */
   final response = await http.post(
     Uri.parse(
       'https://places.googleapis.com/v1/places:autocomplete',

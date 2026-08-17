@@ -8,16 +8,23 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'firebase_options.dart';
 
+// https://coolors.co/65524d-817e9f-7fc29b-b5ef8a-d7f171
+class AppColors {
+  static const taupeGrey = Color(0xFF65524D);
+  static const lavenderGrey = Color(0xFF817E9F);
+  static const mutedTeal = Color(0xFF7FC29B);
+  static const lightGreen = Color(0xFFB5EF8A);
+  static const limeCream = Color(0xFFD7F171);
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   FirebaseFirestore.instance.settings = const Settings(
     persistenceEnabled: true,
   );
-
   // runApp(const MyApp());
   await dotenv.load();
-
   runApp(const MaterialApp(title: "Login Page", home: LoginPage()));
 }
 
@@ -31,7 +38,7 @@ class MyApp extends StatelessWidget {
       title: 'Flutter Demo',
       theme: ThemeData(
   
-        colorScheme: .fromSeed(seedColor: Colors.green),
+        colorScheme: .fromSeed(seedColor: AppColors.lightGreen),
       ),
       home: const MyHomePage(title: 'Coffee Talk'),
     );
@@ -68,7 +75,7 @@ class _MyHomePageState extends State<MyHomePage> {
             currentPageIndex = index;
           });
         },
-        indicatorColor: Colors.amber,
+        indicatorColor: AppColors.mutedTeal,
         selectedIndex: currentPageIndex,
         destinations: const <Widget>[
           NavigationDestination(
