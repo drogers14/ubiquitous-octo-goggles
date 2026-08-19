@@ -64,6 +64,7 @@ class HomePageState extends State<CustomHomePage> {
     final name = profile['name'] ?? 'Unknown User';
     final imageUrl = profile['imageUrl'] ?? '';
     final username = profile['username'] ?? '';
+
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
       stream: FirebaseFirestore.instance
           .collection('journal-entry')
@@ -77,6 +78,7 @@ class HomePageState extends State<CustomHomePage> {
             itemCount: docs.length,
             itemBuilder: (_, i) {
               final data = docs[i].data();
+            final List<dynamic> imageUrls = data['imageUrls'] ?? [];
 
               double? distanceMiles;
 
@@ -126,10 +128,10 @@ class HomePageState extends State<CustomHomePage> {
                                 ),
                               ),
                               const SizedBox(width: 6),
-                              Text(
-                                '@$username',
-                                style: const TextStyle(color: Colors.grey),
-                              ),
+                              // Text(
+                              //   '@$username',
+                              //   style: const TextStyle(color: Colors.grey),
+                              // ),
                               if (distanceMiles != null) ...[
                                 const SizedBox(width: 6),
                                 Text(
@@ -170,7 +172,30 @@ class HomePageState extends State<CustomHomePage> {
                             borderColor: Colors.grey, // Color for empty icons
                           ),
                           Text(data['review'], style: TextStyle(fontSize: 16)),
-
+if (imageUrls.isNotEmpty)
+  Padding(
+    padding: const EdgeInsets.only(top: 12),
+    child: SizedBox(
+      height: 250,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: imageUrls.length,
+        itemBuilder: (context, index) {
+          return Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.network(
+                imageUrls[index].toString(),
+                width: 250,
+                fit: BoxFit.cover,
+              ),
+            ),
+          );
+        },
+      ),
+    ),
+  ),
                           const SizedBox(height: 12),
 
                           Row(
